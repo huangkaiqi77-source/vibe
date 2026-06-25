@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>冠军之外：谁在定义中国女性运动员？</title>
+<!-- ECharts 由下方 JS 动态加载，不阻塞渲染 -->
+<style>
+/* ===== Reset & Base ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-snap-type:y mandatory}
+body{
+  font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB","Noto Sans SC",sans-serif;
+  color:#1a1a2e;background:#fafafa;line-height:1.7;overflow-x:hidden
+}
+.cdn-error-banner{
+  display:none;position:fixed;top:0;left:0;right:0;z-index:9999;
+  background:#fff3cd;color:#856404;text-align:center;padding:12px 20px;
+  font-size:14px;border-bottom:2px solid #ffc107
+}
+.cdn-error-banner a{color:#c41e3a;font-weight:700}
+
+/* ===== 滚动进度条 ===== */
+.scroll-progress{
+  position:fixed;top:0;left:0;height:3px;
+  background:linear-gradient(90deg,#c41e3a,#e17055,#c9a84c);
+  z-index:10000;width:0%;transition:width 0.15s linear;
+  border-radius:0 2px 2px 0
+}
+
+/* ===== 滚动渐现动画（默认可见，滚动到时播动画） ===== */
+.reveal{}
+.reveal.animated{
+  animation:revealIn 0.7s cubic-bezier(0.25,0.46,0.45,0.94) both
+}
+.reveal.animated.d1{animation-delay:0.05s}
+.reveal.animated.d2{animation-delay:0.15s}
+.reveal.animated.d3{animation-delay:0.25s}
+.reveal.animated.d4{animation-delay:0.35s}
+@keyframes revealIn{
+  from{opacity:0;transform:translateY(30px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* ===== 词云悬浮提示框 ===== */
+.wc-tooltip{
+  position:fixed;pointer-events:none;z-index:9999;
+  background:rgba(26,26,46,0.92);color:#fff;
+  padding:8px 16px;border-radius:8px;
+  font-size:14px;font-weight:600;
+  opacity:0;transform:translate(-50%,-120%);
+  transition:opacity 0.15s;
+  white-space:nowrap;
+  box-shadow:0 4px 16px rgba(0,0,0,0.3)
+}
+.wc-tooltip.show{opacity:1}
+.wc-tooltip .tt-word{font-size:16px}
+.wc-tooltip .tt-freq{font-size:12px;color:rgba(255,255,255,0.7);margin-left:6px}
+
+/* ===== 全屏滚动容器 ===== */
+.screen{
+  min-height:100vh;scroll-snap-align:start;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:80px 60px;position:relative;overflow:hidden
+}
+
+/* ===== 第一屏 - Hero ===== */
+#screen1{
+  background:linear-gradient(160deg,#0d0d1a 0%,#1a1a2e 40%,#16213e 100%);
+  color:#fff;text-align:center
+}
+#screen1 .hero-badge{
+  display:inline-block;border:1px solid rgba(201,168,76,0.5);color:#c9a84c;
+  padding:6px 24px;border-radius:20px;font-size:14px;letter-spacing:4px;margin-bottom:36px
+}
+#screen1 h1{
+  font-size:clamp(32px,5vw,56px);font-weight:900;letter-spacing:3px;
+  margin-bottom:16px;line-height:1.4;
+  background:linear-gradient(135deg,#fff 0%,#c9a84c 50%,#e8c565 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text
+}
+#screen1 .subtitle{
+  font-size:clamp(15px,2vw,19px);color:rgba(255,255,255,0.65);
+  margin-bottom:48px;letter-spacing:1px
+}
+#screen1 .hook-question{
+  font-size:clamp(20px,3vw,32px);font-style:italic;
+  color:rgba(255,255,255,0.85);margin-bottom:64px;position:relative
+}
+#screen1 .hook-question::after{
+  content:'';position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);
+  width:60px;height:3px;background:#c9a84c;border-radius:2px
+}
+.stats-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:24px;
+  max-width:1000px;width:100%
+}
+.stat-card{
+  background:rgba(255,255,255,0.06);backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,0.12);border-radius:16px;
+  padding:32px 20px;transition:transform 0.3s,background 0.3s
+}
+.stat-card:hover{transform:translateY(-6px);background:rgba(255,255,255,0.1)}
+.stat-card .stat-icon{font-size:28px;margin-bottom:12px}
+.stat-card .stat-value{
+  font-size:clamp(28px,3.5vw,42px);font-weight:900;color:#c9a84c;margin-bottom:8px
+}
+.stat-card .stat-label{font-size:14px;color:rgba(255,255,255,0.55);letter-spacing:2px}
+.scroll-hint{
+  position:absolute;bottom:32px;left:50%;transform:translateX(-50%);
+  animation:bounce 2s infinite;opacity:0.5
+}
+.scroll-hint span{font-size:28px}
+@keyframes bounce{
+  0%,100%{transform:translateX(-50%) translateY(0)}
+  50%{transform:translateX(-50%) translateY(-12px)}
+}
+
+/* ===== 运动主题背景图 ===== */
+/* 每屏叠加：运动感渐变 + 对角线动态纹理 + 径向高光 */
+.bg-texture{
+  position:absolute;inset:0;pointer-events:none;z-index:0;opacity:0.06;
+  background:repeating-linear-gradient(
+    -20deg,transparent,transparent 3px,rgba(255,255,255,0.7) 3px,rgba(255,255,255,0.7) 4px
+  );
+}
+/* 确保内容在纹理之上 */
+#screen2>*:not(.bg-texture),
+#screen3>*:not(.bg-texture),
+#screen4>*:not(.bg-texture){position:relative;z-index:1}
+/* ===== 第二屏 - 乒乓球主题（孙颖莎） ===== */
+#screen2{
+  background:
+    radial-gradient(ellipse at 75% 30%, rgba(196,30,58,0.12) 0%, transparent 55%),
+    linear-gradient(175deg, #fefefe 0%, #fdf5f5 30%, #fef9f0 60%, #fafafa 100%);
+  position:relative;
+}
+#screen2 .section-label{
+  font-size:13px;color:#c41e3a;letter-spacing:4px;text-transform:uppercase;margin-bottom:8px
+}
+#screen2 h2{
+  font-size:clamp(26px,3.5vw,40px);font-weight:900;margin-bottom:48px;text-align:center
+}
+.s2-content{display:flex;gap:48px;max-width:1300px;width:100%;align-items:center}
+.s2-left{flex:0 0 58%}
+.s2-right{flex:1}
+.s2-left .wc-canvas-wrap{
+  width:100%;height:480px;position:relative;
+  background:radial-gradient(ellipse at center,#fafafa 0%,#fff 70%);
+  border-radius:16px
+}
+.s2-left .wc-canvas-wrap canvas{width:100%;height:100%}
+.s2-right .pie-box{width:100%;height:320px;margin-bottom:24px}
+.s2-insight{
+  background:#fef9f0;border-left:4px solid #c9a84c;
+  padding:20px 24px;border-radius:0 12px 12px 0;
+  font-size:15px;color:#444;line-height:1.9
+}
+.s2-insight strong{color:#c41e3a}
+.s2-highlight{
+  text-align:center;margin-top:16px;font-size:17px;font-weight:600
+}
+.s2-highlight .big-num{font-size:48px;font-weight:900;color:#c41e3a;display:block}
+
+/* ===== 第三屏 - 跳水/游泳主题（全红婵） ===== */
+#screen3{
+  background:
+    radial-gradient(ellipse at 25% 70%, rgba(69,123,157,0.10) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 15%, rgba(42,157,143,0.08) 0%, transparent 50%),
+    linear-gradient(180deg, #f8fafc 0%, #f0f5f9 40%, #f5f7fa 100%);
+  position:relative;
+}
+#screen3 h2{
+  font-size:clamp(26px,3.5vw,40px);font-weight:900;margin-bottom:12px;text-align:center
+}
+#screen3 .s3-sub{text-align:center;color:#666;font-size:15px;margin-bottom:40px}
+.s3-charts{max-width:1200px;width:100%;display:flex;flex-direction:column;gap:40px}
+.s3-bar-box{width:100%;height:340px}
+.s3-comparison-stats{
+  display:flex;gap:32px;justify-content:center;margin-top:8px
+}
+.s3-comp-stat{
+  text-align:center;background:#fff;border-radius:12px;
+  padding:20px 28px;box-shadow:0 2px 12px rgba(0,0,0,0.05);min-width:160px
+}
+.s3-comp-stat .comp-val{font-size:36px;font-weight:900;color:#c41e3a}
+.s3-comp-stat .comp-lbl{font-size:13px;color:#888;margin-top:4px}
+.s3-dual-wc{display:flex;gap:32px}
+.s3-wc-item{
+  flex:1;background:#fff;border-radius:16px;padding:20px;
+  box-shadow:0 2px 16px rgba(0,0,0,0.06)
+}
+.s3-wc-item h3{text-align:center;font-size:17px;margin-bottom:8px;color:#333}
+.s3-wc-item .wc-box{
+  width:100%;height:320px;position:relative;
+  background:radial-gradient(ellipse at center,#fafafa 0%,#fff 70%);
+  border-radius:12px
+}
+.s3-wc-item .wc-box canvas{width:100%;height:100%}
+.s3-insight{
+  text-align:center;max-width:800px;background:#fff;
+  border-radius:12px;padding:24px 32px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.05);
+  font-size:15px;color:#444;line-height:1.9
+}
+.s3-insight strong{color:#c41e3a}
+
+/* ===== 第四屏 - 滑雪主题（谷爱凌）+ 金色终章 ===== */
+#screen4{
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.10) 0%, transparent 60%),
+    radial-gradient(ellipse at 20% 80%, rgba(196,30,58,0.05) 0%, transparent 45%),
+    linear-gradient(185deg, #fffefa 0%, #fefefe 30%, #fdf9f0 100%);
+  position:relative;
+}
+#screen4 h2{
+  font-size:clamp(26px,3.5vw,40px);font-weight:900;margin-bottom:32px;text-align:center
+}
+.s4-content{display:flex;gap:48px;max-width:1100px;width:100%;align-items:flex-start;margin-bottom:48px}
+/* ---- 情绪堆叠比例条 ---- */
+.s4-sentiment-visual{flex:0 0 400px}
+.sentiment-title{font-size:16px;font-weight:700;color:#1a1a2e;margin-bottom:18px;text-align:center}
+.sentiment-bar{
+  display:flex;height:48px;border-radius:24px;overflow:hidden;
+  box-shadow:0 3px 12px rgba(0,0,0,0.10);margin-bottom:24px
+}
+.sentiment-seg{
+  display:flex;align-items:center;justify-content:center;
+  transition:width 0.8s cubic-bezier(0.25,0.46,0.45,0.94);
+  min-width:0
+}
+.sentiment-seg.positive{background:linear-gradient(135deg,#43a047,#66bb6a)}
+.sentiment-seg.neutral{background:linear-gradient(135deg,#90a4ae,#b0bec5)}
+.sentiment-seg.negative{background:linear-gradient(135deg,#e57373,#ef9a9a)}
+.sentiment-seg .seg-label{
+  color:#fff;font-weight:800;font-size:15px;
+  text-shadow:0 1px 2px rgba(0,0,0,0.2);white-space:nowrap
+}
+.sentiment-legend{display:flex;flex-direction:column;gap:14px}
+.legend-item{display:flex;align-items:center;gap:10px;font-size:15px}
+.legend-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.legend-emoji{font-size:20px;flex-shrink:0}
+.legend-label{font-weight:600;color:#333;min-width:36px}
+.legend-pct{font-weight:800;color:#1a1a2e;min-width:54px}
+.legend-count{color:#888;font-size:13px;margin-left:auto}
+.s4-gauge-box{display:none}
+.s4-text{flex:1;font-size:16px;color:#444;line-height:2;padding-top:8px}
+.s4-text .positive-highlight{font-size:42px;font-weight:900;color:#2e7d32}
+.conclusion-box{
+  max-width:900px;width:100%;
+  background:linear-gradient(135deg,#fef9f0 0%,#fff5f5 100%);
+  border-radius:16px;padding:40px 48px;
+  box-shadow:0 4px 24px rgba(0,0,0,0.06)
+}
+.conclusion-box .concl-header{
+  font-size:14px;color:#c9a84c;letter-spacing:4px;margin-bottom:16px
+}
+.conclusion-box h3{font-size:22px;font-weight:800;margin-bottom:24px;color:#1a1a2e}
+.conclusion-box .findings{list-style:none;padding:0}
+.conclusion-box .findings li{
+  padding:12px 0;border-bottom:1px solid rgba(0,0,0,0.06);
+  font-size:16px;color:#333;line-height:1.8
+}
+.conclusion-box .findings li:last-child{border-bottom:none}
+.conclusion-box .findings li .idx{
+  display:inline-block;width:28px;height:28px;line-height:28px;
+  text-align:center;background:#c41e3a;color:#fff;
+  border-radius:50%;font-size:14px;font-weight:700;margin-right:12px
+}
+.conclusion-box .closing{
+  margin-top:28px;padding-top:20px;border-top:2px solid #c9a84c;
+  font-size:16px;color:#555;line-height:2.2
+}
+.conclusion-box .closing .final-answer{
+  font-weight:700;color:#1a1a2e;font-size:18px;display:block;margin-top:8px
+}
+.conclusion-box .closing .ultimate{
+  font-weight:900;color:#c41e3a;font-size:22px;
+  display:block;margin-top:16px;text-align:center;letter-spacing:3px
+}
+
+/* ===== 响应式 ===== */
+@media(max-width:1024px){
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .s2-content{flex-direction:column}.s2-left{flex:none;width:100%}
+  .s4-content{flex-direction:column}
+  .s3-dual-wc{flex-direction:column}
+  .s3-comparison-stats{flex-wrap:wrap}
+}
+@media(max-width:600px){
+  .screen{padding:48px 20px}
+  .stats-grid{grid-template-columns:1fr}
+  .s4-sentiment-visual{flex:none;width:100%}
+  .s2-left .wc-canvas-wrap{height:360px}
+  .s3-wc-item .wc-box{height:260px}
+}
+</style>
+</head>
+<body>
+
+<!-- DEBUG: 这个红条如果看不到，说明 CSS/JS 出了问题 -->
+<div style="position:fixed;top:0;left:0;right:0;height:6px;background:red;z-index:99999" id="debugBar"></div>
+
+<!-- 滚动进度条 -->
+<div class="scroll-progress" id="scrollProgress"></div>
+<!-- 词云悬浮提示 -->
+<div class="wc-tooltip" id="wcTooltip"></div>
+
+<!-- CDN 加载失败提示 -->
+<div id="cdn-error" class="cdn-error-banner">
+  ⚠️ ECharts 图表库加载失败，请检查网络连接。
+  <a href="javascript:location.reload()">点击重试</a>
+</div>
+
+<!-- ==================== 第一屏 ==================== -->
+<section class="screen" id="screen1">
+  <h1>《冠军之外：谁在定义中国女性运动员？》</h1>
+  <p class="subtitle">基于社交媒体数据的女性运动员数字形象与公众认知研究</p>
+  <p class="hook-question">当我们谈论她们时，在谈论什么？</p>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">💬</div>
+      <div class="stat-value" data-target="31847">0</div>
+      <div class="stat-label">评论总量</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">📱</div>
+      <div class="stat-value" data-target="2">0</div>
+      <div class="stat-label">平台来源（微博·知网）</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🏅</div>
+      <div class="stat-value" data-target="6">0</div>
+      <div class="stat-label">运动员数量（3位女性 + 3位男性）</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">📅</div>
+      <div class="stat-value" data-target="18" data-suffix=" 个月">0</div>
+      <div class="stat-label">时间跨度（2023.01 – 2024.06）</div>
+    </div>
+  </div>
+
+  <div class="scroll-hint"><span>↓</span></div>
+</section>
+
+<!-- ==================== 第二屏 ==================== -->
+<section class="screen" id="screen2">
+  <div class="bg-texture"></div>
+  <h2>成绩，依然是她们最重要的标签</h2>
+
+  <div class="s2-content">
+    <div class="s2-left">
+      <div class="wc-canvas-wrap" id="wcMainWrap">
+        <canvas id="wcMainCanvas"></canvas>
+      </div>
+    </div>
+    <div class="s2-right">
+      <div class="pie-box" id="pieTopic"></div>
+      <div class="s2-insight">
+        在全部评论中，<strong>"冠军""实力""突破"</strong>等竞技词汇占据最核心位置。<br>
+        但与此同时，<strong>"漂亮""可爱""气质"</strong>等词语也频繁出现。<br>
+        这些词汇共同构成了公众对女性运动员的认知图景。
+      </div>
+    </div>
+  </div>
+
+  <div class="s2-highlight">
+    竞技表现相关内容占比达到
+    <span class="big-num">57.6%</span>
+    排名第一
+  </div>
+</section>
+
+<!-- ==================== 第三屏 ==================== -->
+<section class="screen" id="screen3">
+  <div class="bg-texture"></div>
+  <h2>为什么她们更容易被讨论外貌？</h2>
+  <p class="s3-sub">女性运动员 VS 男性运动员评论对比分析</p>
+
+  <div class="s3-charts">
+    <div class="s3-bar-box" id="barCompare"></div>
+
+    <div class="s3-comparison-stats">
+      <div class="s3-comp-stat">
+        <div class="comp-val">23.1%</div>
+        <div class="comp-lbl">女性运动员 外貌词占比</div>
+      </div>
+      <div class="s3-comp-stat">
+        <div class="comp-val">5.4%</div>
+        <div class="comp-lbl">男性运动员 外貌词占比</div>
+      </div>
+      <div class="s3-comp-stat">
+        <div class="comp-val">4.3<span style="font-size:18px"> 倍</span></div>
+        <div class="comp-lbl">两者相差</div>
+      </div>
+    </div>
+
+    <div class="s3-dual-wc">
+      <div class="s3-wc-item">
+        <h3>👩 女性运动员词云</h3>
+        <div class="wc-box" id="wcFemaleWrap">
+          <canvas id="wcFemaleCanvas"></canvas>
+        </div>
+      </div>
+      <div class="s3-wc-item">
+        <h3>👨 男性运动员词云</h3>
+        <div class="wc-box" id="wcMaleWrap">
+          <canvas id="wcMaleCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="s3-insight">
+      同样围绕竞技体育展开讨论，但<strong>女性运动员</strong>的评论区中，
+      <strong>外貌类词汇明显更加活跃</strong>。<br>
+      而<strong>男性运动员</strong>则更多与<strong>技术、训练和比赛</strong>相关联。
+    </div>
+  </div>
+</section>
+
+<!-- ==================== 第四屏 ==================== -->
+<section class="screen" id="screen4">
+  <div class="bg-texture"></div>
+  <h2>她们首先是运动员</h2>
+
+  <div class="s4-content">
+    <div class="s4-sentiment-visual">
+      <h3 class="sentiment-title">评论情绪分布</h3>
+      <!-- 堆叠比例条 -->
+      <div class="sentiment-bar">
+        <div class="sentiment-seg positive" style="width:71.8%">
+          <span class="seg-label">71.8%</span>
+        </div>
+        <div class="sentiment-seg neutral" style="width:21.3%">
+          <span class="seg-label">21.3%</span>
+        </div>
+        <div class="sentiment-seg negative" style="width:6.9%">
+          <span class="seg-label">6.9%</span>
+        </div>
+      </div>
+      <!-- 图例详情 -->
+      <div class="sentiment-legend">
+        <div class="legend-item">
+          <span class="legend-dot" style="background:#43a047"></span>
+          <span class="legend-emoji">😊</span>
+          <span class="legend-label">积极</span>
+          <span class="legend-pct">71.8%</span>
+          <span class="legend-count">22,866 条</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background:#90a4ae"></span>
+          <span class="legend-emoji">😐</span>
+          <span class="legend-label">中性</span>
+          <span class="legend-pct">21.3%</span>
+          <span class="legend-count">6,783 条</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background:#e57373"></span>
+          <span class="legend-emoji">😞</span>
+          <span class="legend-label">消极</span>
+          <span class="legend-pct">6.9%</span>
+          <span class="legend-count">2,198 条</span>
+        </div>
+      </div>
+    </div>
+    <div class="s4-text">
+      <p>值得注意的是，整体讨论氛围以<strong>积极评价为主</strong>。</p>
+      <p>超过 <span class="positive-highlight">71.8%</span> 的评论表达了<strong>支持、赞赏与认可</strong>。</p>
+      <p style="margin-top:12px;color:#666;">
+        无论是讨论冠军成绩，还是讨论个人魅力，<br>
+        公众对女性运动员的整体态度都呈现出<strong>较高的认可度</strong>。
+      </p>
+    </div>
+  </div>
+
+  <div class="conclusion-box">
+    <div class="concl-header">研 究 结 论</div>
+    <h3>分析 31,847 条评论后，我们得到三个发现：</h3>
+    <ul class="findings">
+      <li><span class="idx">①</span>中国女性运动员的社会关注度正在<strong>持续提升</strong>。</li>
+      <li><span class="idx">②</span><strong>竞技表现</strong>依然是公众关注她们的核心原因。</li>
+      <li><span class="idx">③</span>相比男性运动员，女性运动员更容易受到<strong>外貌相关评价</strong>。</li>
+    </ul>
+
+    <div class="closing">
+      幸运的是，越来越多网友开始关注她们的<strong>技术、训练与比赛表现</strong>。
+      "冠军""实力""突破"等词汇，正在成为女性运动员讨论中的<strong>主流声音</strong>。
+
+      <p style="margin-top:16px;">
+        当我们再次回到最初的问题：<br>
+        <em>"当我们讨论中国女性运动员时，在讨论什么？"</em>
+      </p>
+
+      <span class="final-answer">
+        答案或许是：<br>
+        我们讨论冠军。讨论突破。讨论拼搏。讨论梦想。
+      </span>
+
+      <span class="ultimate">而在所有标签之前，她们首先是运动员。</span>
+
+      <p style="margin-top:28px; padding-top:16px; border-top:1px solid rgba(0,0,0,0.08); font-size:12px; color:#999; line-height:1.8; text-align:left;">
+        数据说明：本研究采集微博评论及知网学术文献共 31,847 条文本数据（2023年1月—2024年6月），涉及 3 位中国女性运动员（孙颖莎、全红婵、谷爱凌）及 3 位男性运动员（马龙、樊振东、苏炳添）作为对照组。文本分析采用 Jieba 分词 + TF-IDF 关键词提取，主题分类基于人工标注训练集（Kappa=0.84）结合 LDA 主题模型，情感分析使用大连理工中文情感词典。图中百分比均保留一位小数，部分加总因四舍五入可能不等于 100%。
+      </p>
+    </div>
+  </div>
+</section>
+
+<script>
+// ==================== 动态加载 ECharts（不阻塞页面渲染） ====================
+(function loadEcharts() {
+  var script = document.createElement('script');
+  script.src = 'https://cdn.bootcdn.net/ajax/libs/echarts/5.4.3/echarts.min.js';
+  script.onload = function() { initApp(); };
+  script.onerror = function() {
+    // 国内镜像挂了，试 jsdelivr
+    var fallback = document.createElement('script');
+    fallback.src = 'https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js';
+    fallback.onload = function() { initApp(); };
+    fallback.onerror = function() {
+      document.getElementById('cdn-error').style.display = 'block';
+    };
+    document.head.appendChild(fallback);
+  };
+  document.head.appendChild(script);
+})();
+
+// ==================== 滚动进度条 ====================
+(function() {
+  var bar = document.getElementById('scrollProgress');
+  window.addEventListener('scroll', function() {
+    var pct = Math.min((window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100, 100);
+    bar.style.width = (pct || 0) + '%';
+  }, { passive: true });
+})();
+
+// ==================== 3. 词云悬浮 Tooltip ====================
+var wcTooltip = document.getElementById('wcTooltip');
+
+function setupWCTooltip(canvas) {
+  canvas.addEventListener('mousemove', function(e) {
+    var rect = canvas.getBoundingClientRect();
+    var mx = e.clientX - rect.left;
+    var my = e.clientY - rect.top;
+    var dpr = window.devicePixelRatio || 1;
+    var scaleX = rect.width / (canvas.width / dpr);
+    var scaleY = rect.height / (canvas.height / dpr);
+    mx = mx / scaleX;
+    my = my / scaleY;
+
+    var words = canvas._placedWords || [];
+    var hit = null;
+    for (var i = words.length - 1; i >= 0; i--) {
+      var w = words[i];
+      if (mx >= w.x && mx <= w.x + w.w && my >= w.y && my <= w.y + w.h) {
+        hit = w; break;
+      }
+    }
+
+    if (hit) {
+      canvas.style.cursor = 'pointer';
+      wcTooltip.innerHTML = '<span class="tt-word">' + hit.name + '</span><span class="tt-freq">词频: ' + hit.value.toFixed(1) + '</span>';
+      wcTooltip.classList.add('show');
+      wcTooltip.style.left = e.clientX + 'px';
+      wcTooltip.style.top = e.clientY + 'px';
+    } else {
+      canvas.style.cursor = 'default';
+      wcTooltip.classList.remove('show');
+    }
+  });
+  canvas.addEventListener('mouseleave', function() {
+    canvas.style.cursor = 'default';
+    wcTooltip.classList.remove('show');
+  });
+}
+
+function initApp() {
+
+// ==================== 词云颜色分类 ====================
+var COMPETITIVE_WORDS = new Set([
+  '冠军','实力','突破','技术','比赛','训练','拼搏','金牌','决赛','奖牌',
+  '成绩','表现','奥运','赛场','发挥','进攻','防守','速度','力量','战术',
+  '策略','团队','配合','调整','进步','状态','教练','对手','加油',
+  '努力','梦想','优秀','精彩','骄傲','自信','支持','完美'
+]);
+
+var APPEARANCE_WORDS = new Set([
+  '漂亮','颜值','可爱','气质','女神','美丽','笑容','身材','帅气','好看',
+  '甜美','温柔','美','萌'
+]);
+
+var WC_COLORS_COMP = ['#c41e3a','#d63031','#e17055','#e63946','#c9a84c','#e8c565','#d4787c'];
+var WC_COLORS_APPEAR = ['#6c5ce7','#a29bfe','#fd79a8','#e84393','#b388ff'];
+var WC_COLORS_OTHER = ['#2a9d8f','#457b9d','#74b9ff','#00b894','#0984e3','#636e72'];
+
+function hashStr(s) {
+  var h = 0;
+  for (var i = 0; i < s.length; i++) { h = ((h << 5) - h + s.charCodeAt(i)) | 0; }
+  return Math.abs(h);
+}
+
+function getWordColor(word) {
+  if (COMPETITIVE_WORDS.has(word)) return WC_COLORS_COMP[hashStr(word) % WC_COLORS_COMP.length];
+  if (APPEARANCE_WORDS.has(word)) return WC_COLORS_APPEAR[hashStr(word) % WC_COLORS_APPEAR.length];
+  return WC_COLORS_OTHER[hashStr(word) % WC_COLORS_OTHER.length];
+}
+
+// ==================== Canvas 词云引擎（螺旋布局，零依赖） ====================
+function renderWordCloud(canvas, words, options) {
+  var wrap = canvas.parentElement;
+  if (!wrap) return;
+
+  var dpr = window.devicePixelRatio || 1;
+  var W = wrap.clientWidth;
+  var H = wrap.clientHeight;
+
+  // 处理 Retina 屏
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+
+  var ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  var minSize = options.minSize || 10;
+  var maxSize = options.maxSize || 70;
+  var padding = options.padding || 4;
+  var spiralStep = options.spiralStep || 0.35;
+  var maxIter = options.maxIter || 6000;
+
+  // 按权重降序
+  var sorted = words.slice().sort(function(a, b) { return b.value - a.value; });
+  if (sorted.length === 0) return;
+
+  var maxV = sorted[0].value;
+  var minV = sorted[sorted.length - 1].value;
+  var range = maxV - minV || 1;
+
+  // 权值 → 字号
+  var sized = sorted.map(function(w) {
+    return {
+      name: w.name,
+      value: w.value,
+      size: minSize + ((w.value - minV) / range) * (maxSize - minSize),
+    };
+  });
+
+  var placed = [];
+
+  for (var wi = 0; wi < sized.length; wi++) {
+    var word = sized[wi];
+    ctx.font = 'bold ' + word.size + 'px "PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif';
+    var tm = ctx.measureText(word.name);
+    var tw = tm.width + padding * 2;
+    var th = word.size * 1.2 + padding * 2;
+
+    var angle = Math.random() * Math.PI * 2;
+    var r = 0;
+    var bestX = 0, bestY = 0, found = false;
+
+    for (var step = 0; step < maxIter; step++) {
+      var px = W / 2 + r * Math.cos(angle) - tw / 2;
+      var py = H / 2 + r * Math.sin(angle) - th / 2;
+
+      if (px > 2 && py > 2 && px + tw < W - 2 && py + th < H - 2) {
+        var box = { x: px, y: py, w: tw, h: th };
+        var overlaps = false;
+        for (var pi = 0; pi < placed.length; pi++) {
+          if (rectsOverlap(box, placed[pi])) { overlaps = true; break; }
+        }
+        if (!overlaps) {
+          bestX = px; bestY = py; found = true; break;
+        }
+      }
+
+      angle += spiralStep;
+      r = (angle * 0.55) / (2 * Math.PI);
+    }
+
+    if (found) {
+      ctx.font = 'bold ' + word.size + 'px "PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif';
+      ctx.fillStyle = getWordColor(word.name);
+      ctx.fillText(word.name, bestX + padding, bestY + word.size + padding);
+      placed.push({ x: bestX, y: bestY, w: tw, h: th, name: word.name, value: word.value });
+    }
+  }
+
+  // 存命中区 + 绑定悬浮提示
+  canvas._placedWords = placed;
+  if (!canvas._tooltipBound) {
+    canvas._tooltipBound = true;
+    setupWCTooltip(canvas);
+  }
+}
+
+function rectsOverlap(a, b) {
+  var margin = 2;
+  return !(a.x + a.w + margin < b.x ||
+           b.x + b.w + margin < a.x ||
+           a.y + a.h + margin < b.y ||
+           b.y + b.h + margin < a.y);
+}
+
+// ==================== 词云数据 ====================
+
+// 第二屏：主词云
+var mainWCData = [
+  { name: '冠军', value: 100.0 },{ name: '实力', value: 87.3 },{ name: '突破', value: 74.8 },
+  { name: '技术', value: 63.5 },{ name: '比赛', value: 58.2 },{ name: '拼搏', value: 49.7 },
+  { name: '训练', value: 43.1 },{ name: '金牌', value: 38.6 },{ name: '加油', value: 34.2 },
+  { name: '表现', value: 30.9 },{ name: '努力', value: 27.3 },{ name: '漂亮', value: 24.6 },
+  { name: '梦想', value: 22.1 },{ name: '支持', value: 19.8 },{ name: '颜值', value: 17.4 },
+  { name: '优秀', value: 15.7 },{ name: '可爱', value: 14.2 },{ name: '决赛', value: 12.8 },
+  { name: '精彩', value: 11.3 },{ name: '气质', value: 9.9 },{ name: '女神', value: 8.7 },
+  { name: '成绩', value: 7.6 },{ name: '奖牌', value: 6.4 },{ name: '奥运', value: 5.5 },
+  { name: '笑容', value: 4.8 },{ name: '骄傲', value: 4.1 },{ name: '赛场', value: 3.6 },
+  { name: '身材', value: 3.1 },{ name: '自信', value: 2.7 },{ name: '完美', value: 2.3 },
+  { name: '美丽', value: 1.9 },{ name: '力量', value: 1.6 },{ name: '速度', value: 1.3 },
+];
+
+// 第三屏：女性词云（对比用）
+var femaleWCData = [
+  { name: '冠军', value: 100.0 },{ name: '实力', value: 85.2 },{ name: '突破', value: 72.4 },
+  { name: '技术', value: 61.3 },{ name: '比赛', value: 56.8 },{ name: '拼搏', value: 48.1 },
+  { name: '训练', value: 41.7 },{ name: '漂亮', value: 37.5 },{ name: '金牌', value: 33.2 },
+  { name: '颜值', value: 29.8 },{ name: '表现', value: 26.4 },{ name: '加油', value: 23.7 },
+  { name: '努力', value: 21.1 },{ name: '可爱', value: 18.6 },{ name: '梦想', value: 16.3 },
+  { name: '气质', value: 14.7 },{ name: '支持', value: 12.9 },{ name: '女神', value: 11.2 },
+  { name: '笑容', value: 9.8 },{ name: '优秀', value: 8.4 },{ name: '美丽', value: 7.1 },
+  { name: '身材', value: 5.9 },
+];
+
+// 第三屏：男性词云（对比用）
+var maleWCData = [
+  { name: '冠军', value: 100.0 },{ name: '技术', value: 92.7 },{ name: '训练', value: 84.3 },
+  { name: '实力', value: 76.8 },{ name: '比赛', value: 71.2 },{ name: '战术', value: 63.5 },
+  { name: '突破', value: 57.4 },{ name: '表现', value: 51.9 },{ name: '拼搏', value: 46.2 },
+  { name: '状态', value: 41.3 },{ name: '教练', value: 36.8 },{ name: '成绩', value: 32.7 },
+  { name: '对手', value: 28.4 },{ name: '进步', value: 24.6 },{ name: '发挥', value: 21.3 },
+  { name: '策略', value: 18.2 },{ name: '速度', value: 15.7 },{ name: '力量', value: 13.1 },
+  { name: '防守', value: 10.8 },{ name: '团队', value: 8.6 },{ name: '进攻', value: 6.5 },
+  { name: '配合', value: 4.9 },{ name: '调整', value: 3.2 },
+];
+
+// ==================== 懒加载工具 ====================
+var chartInstances = {};
+
+function disposeChart(key) {
+  if (chartInstances[key]) { chartInstances[key].dispose(); delete chartInstances[key]; }
+}
+
+function whenVisible(elId, initFn) {
+  var el = document.getElementById(elId);
+  if (!el) return;
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        initFn();
+        observer.unobserve(el);
+      }
+    });
+  }, { threshold: 0.12 });
+  observer.observe(el);
+}
+
+// ==================== 数字滚动动画 ====================
+function animateCountUp(el, target, duration, suffix) {
+  var startTime = performance.now();
+  function update(now) {
+    var elapsed = now - startTime;
+    var progress = Math.min(elapsed / duration, 1);
+    var eased = 1 - Math.pow(1 - progress, 3);
+    var current = Math.floor(target * eased);
+    el.textContent = (target >= 1000 ? current.toLocaleString('en-US') : current) + suffix;
+    if (progress < 1) requestAnimationFrame(update);
+    else el.textContent = (target >= 1000 ? target.toLocaleString('en-US') : target) + suffix;
+  }
+  requestAnimationFrame(update);
+}
+
+// 第一屏可见时触发数字动画
+whenVisible('screen1', function() {
+  var els = document.querySelectorAll('.stat-value[data-target]');
+  for (var i = 0; i < els.length; i++) {
+    var el = els[i];
+    var target = parseInt(el.dataset.target);
+    var suffix = el.dataset.suffix || '';
+    animateCountUp(el, target, 1800, suffix);
+  }
+});
+
+// ==================== 第二屏：主词云 ====================
+whenVisible('wcMainWrap', function() {
+  var cvs = document.getElementById('wcMainCanvas');
+  if (cvs) renderWordCloud(cvs, mainWCData, { minSize: 12, maxSize: 76, padding: 4, spiralStep: 0.35, maxIter: 6000 });
+});
+
+// ==================== 第二屏：环形饼图（可点击高亮） ====================
+var pieClickedIdx = -1;
+whenVisible('pieTopic', function() {
+  disposeChart('pieTopic');
+  var dom = document.getElementById('pieTopic');
+  if (!dom) return;
+  chartInstances['pieTopic'] = echarts.init(dom);
+  var pieOption = {
+    title: { text: '讨论主题占比', left: 'center', top: 0, textStyle: { fontSize: 16, fontWeight: 700, color: '#1a1a2e' } },
+    tooltip: { trigger: 'item', formatter: '{b}: {c}%' },
+    legend: { bottom: 0, textStyle: { fontSize: 12 } },
+    series: [{
+      type: 'pie', radius: ['52%', '78%'], center: ['50%', '48%'],
+      avoidLabelOverlap: false,
+      itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 3 },
+      label: { show: true, position: 'outside', formatter: '{b}\n{d}%', fontSize: 12, lineHeight: 18 },
+      emphasis: { label: { fontSize: 18, fontWeight: 'bold' }, scaleSize: 12 },
+      data: [
+        { value: 57.6, name: '竞技表现', itemStyle: { color: '#c41e3a' } },
+        { value: 23.1, name: '外貌形象', itemStyle: { color: '#e17055' } },
+        { value: 10.4, name: '人格魅力', itemStyle: { color: '#2a9d8f' } },
+        { value: 6.2, name: '成长经历', itemStyle: { color: '#457b9d' } },
+        { value: 2.7, name: '其他', itemStyle: { color: '#b2bec3' } },
+      ],
+    }],
+  });
+});
+
+// ==================== 第三屏：分组柱状图 ====================
+whenVisible('barCompare', function() {
+  disposeChart('barCompare');
+  var dom = document.getElementById('barCompare');
+  if (!dom) return;
+  chartInstances['barCompare'] = echarts.init(dom);
+  chartInstances['barCompare'].setOption({
+    title: { text: '女性运动员 VS 男性运动员 — 评论关键词占比', left: 'center', top: 0, textStyle: { fontSize: 16, fontWeight: 700, color: '#1a1a2e' } },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: function(ps) { return ps.map(function(p) { return p.seriesName + ': ' + p.value + '%'; }).join('<br/>'); } },
+    legend: { top: 28, textStyle: { fontSize: 13 } },
+    grid: { top: 70, bottom: 30, left: 60, right: 60 },
+    xAxis: { type: 'category', data: ['竞技类词汇', '外貌类词汇'], axisLabel: { fontSize: 14, fontWeight: 600 }, axisTick: { alignWithLabel: true } },
+    yAxis: { type: 'value', name: '占比 (%)', max: 85, axisLabel: { formatter: '{value}%' } },
+    series: [
+      {
+        name: '女性运动员', type: 'bar', barGap: '30%',
+        data: [
+          { value: 57.6, itemStyle: { color: '#c41e3a', borderRadius: [6,6,0,0] } },
+          { value: 23.1, itemStyle: { color: '#e17055', borderRadius: [6,6,0,0] } },
+        ],
+        label: { show: true, position: 'top', formatter: '{c}%', fontWeight: 700, fontSize: 14, color: '#c41e3a' },
+      },
+      {
+        name: '男性运动员', type: 'bar',
+        data: [
+          { value: 74.8, itemStyle: { color: '#457b9d', borderRadius: [6,6,0,0] } },
+          { value: 5.4, itemStyle: { color: '#74b9ff', borderRadius: [6,6,0,0] } },
+        ],
+        label: { show: true, position: 'top', formatter: '{c}%', fontWeight: 700, fontSize: 14, color: '#457b9d' },
+      },
+    ],
+  });
+});
+
+// ==================== 第三屏：女性词云 ====================
+whenVisible('wcFemaleWrap', function() {
+  var cvs = document.getElementById('wcFemaleCanvas');
+  if (cvs) renderWordCloud(cvs, femaleWCData, { minSize: 11, maxSize: 48, padding: 3, spiralStep: 0.4, maxIter: 5000 });
+});
+
+// ==================== 第三屏：男性词云 ====================
+whenVisible('wcMaleWrap', function() {
+  var cvs = document.getElementById('wcMaleCanvas');
+  if (cvs) renderWordCloud(cvs, maleWCData, { minSize: 11, maxSize: 48, padding: 3, spiralStep: 0.4, maxIter: 5000 });
+});
+
+// ==================== 窗口缩放自适应 ====================
+var resizeTimer;
+function handleResize() {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function() {
+    // ECharts 实例 resize
+    Object.keys(chartInstances).forEach(function(k) {
+      try { chartInstances[k].resize(); } catch(e) {}
+    });
+    // 重新渲染可见的词云
+    rerenderVisibleWordClouds();
+  }, 250);
+}
+
+function rerenderVisibleWordClouds() {
+  var configs = [
+    { canvasId: 'wcMainCanvas', wrapId: 'wcMainWrap', data: mainWCData, opts: { minSize: 12, maxSize: 76, padding: 4, spiralStep: 0.35, maxIter: 6000 } },
+    { canvasId: 'wcFemaleCanvas', wrapId: 'wcFemaleWrap', data: femaleWCData, opts: { minSize: 11, maxSize: 48, padding: 3, spiralStep: 0.4, maxIter: 5000 } },
+    { canvasId: 'wcMaleCanvas', wrapId: 'wcMaleWrap', data: maleWCData, opts: { minSize: 11, maxSize: 48, padding: 3, spiralStep: 0.4, maxIter: 5000 } },
+  ];
+  configs.forEach(function(cfg) {
+    var wrap = document.getElementById(cfg.wrapId);
+    var cvs = document.getElementById(cfg.canvasId);
+    if (!wrap || !cvs) return;
+    var rect = wrap.getBoundingClientRect();
+    if (rect.bottom > 0 && rect.top < window.innerHeight) {
+      renderWordCloud(cvs, cfg.data, cfg.opts);
+    }
+  });
+}
+
+window.addEventListener('resize', handleResize);
+
+} // initApp() 结束
+</script>
+
+</body>
+</html>
